@@ -40,7 +40,7 @@ Credits: Lite and Standard cost 1 credit per frame, Pro costs 2. A 4-second rewr
 
 ## Deploying
 
-Rendering shells out to ffmpeg and runs for minutes, so use a host with a long-running Node server and a persistent disk: Railway, Render, Fly.io or a VPS (`npm run build && npm start`). Vercel's serverless functions won't work for this. Projects live in `.retake-data/` (override with `RETAKE_DATA_DIR`).
+See [DEPLOY.md](DEPLOY.md) for step-by-step hosting on Railway, pricing and payments. In short: it needs a long-running Node server with a persistent disk (not Vercel), and you should set `SITE_PASSWORD` so strangers can't spend your API credits.
 
 ## Layout
 
