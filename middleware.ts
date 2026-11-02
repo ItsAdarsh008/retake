@@ -27,5 +27,5 @@ export function middleware(req: NextRequest) {
 export const config = {
   // api/upload is left out on purpose: middleware would cap the video at 10 MB.
   // That route checks the password and owner cookie itself.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/upload).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|api/upload).*)"],
 };
