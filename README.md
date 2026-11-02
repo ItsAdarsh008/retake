@@ -41,13 +41,11 @@ No sign-up, no account, no payment. Each browser only sees the videos it uploade
 
 | | Who pays | Cost |
 | --- | --- | --- |
-| Transcripts (OpenAI) | The user, with their own OpenAI API key | About $0.006 per minute of video, so a 3-minute video costs about 2 cents |
-| Clean up (Anthropic) | The user, optional | A fraction of a cent. Without a key, Clean up falls back to a basic um/uh scan |
+| Transcripts (OpenAI) | Us | About $0.006 per minute of video, so a 3-minute video costs about 2 cents |
 | Voice and lip sync (Magic Hour) | Us | About $0.13 per rewritten sentence |
+| Clean up | Free | A basic um/uh scan, or Claude if we add an Anthropic key |
 
-Lip sync is free for users up to about 3 rewritten sentences per person per day. Our total spend is capped at about $3 a day (about $90 a month at most). Both limits can be changed; see [SETUP.md](SETUP.md).
-
-Users' API keys stay in their own browser and are never stored on our server. Without an OpenAI key, the app runs in demo mode with placeholder text, which is fine for trying the editor but not for real footage.
+Users don't need any API keys or an account. Lip sync is free for them up to about 3 rewritten sentences per person per day, and our total lip-sync spend is capped at about $3 a day. Both limits can be changed; see [SETUP.md](SETUP.md).
 
 ## What to promise, and what not to
 
@@ -62,7 +60,7 @@ Users' API keys stay in their own browser and are never stored on our server. Wi
 - **"Instant."** Cuts are quick, but a rewrite takes a few minutes to render.
 - **"Works on any video."** It works best on talking-head clips: one speaker, face visible and facing the camera, clear audio.
 - **"Changes the captions too."** Captions burned into the picture (the TikTok style) keep the old words. Captions added on the platform are fine.
-- **"Free."** Users need their own OpenAI key. Transcripts cost cents, and lip sync is on us up to the daily limit.
+- **"Unlimited."** Each person gets about 3 rewritten sentences a day, and the whole site has a daily limit.
 
 **Consent:** Retake clones voices and changes what people appear to say. Only show or encourage it on footage of yourself, or of people who agreed. Every campaign and creator brief should say so.
 
@@ -89,16 +87,16 @@ Retake can report the whole path for each creator: views (on the platform), then
 - **Give every creator their own link,** like `https://<our site>/?utm_source=jane&utm_medium=social&utm_campaign=launch`.
 - **In Umami, filter by UTM source** to see that creator's visits, uploads, renders and downloads.
 - **There are no accounts,** so there are no signups. The closest thing is a first upload.
-- **Transcript usage isn't visible.** That runs on users' own OpenAI keys.
+- **Transcript spend** shows in our OpenAI dashboard, and lip-sync spend in Magic Hour's.
 
-Setting this up takes about 10 minutes; see [SETUP.md](SETUP.md), section 6.
+Setting this up takes about 5 minutes; see [SETUP.md](SETUP.md), section 4.
 
 ## Sharing with creators
 
-For a creator preview, the site can be password-protected, with transcripts on our key. Creators then need only the link and the password: no API keys, no sign-up. See [SETUP.md](SETUP.md), section 5.
+While it's in preview, the site can be password-protected. Creators then get just the link and the password: no API keys, no sign-up. See [SETUP.md](SETUP.md), section 3.
 
 ## More
 
-- [SETUP.md](SETUP.md): putting it online (Railway, about 30 minutes; it can't run on Vercel), daily limits and running costs.
+- [SETUP.md](SETUP.md): putting it online (Railway, about 15 minutes; it can't run on Vercel), what it can cost, and analytics.
 - [DEVELOPING.md](DEVELOPING.md): running it locally, how a render works, where the code lives.
 - [demo/README.md](demo/README.md): how the demo video is made and how to remake it with new footage.

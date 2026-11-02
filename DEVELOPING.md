@@ -8,19 +8,17 @@ Needs Node 20+.
 
 ```bash
 npm install
-cp .env.example .env.local   # add your Magic Hour key
+cp .env.example .env.local   # add your OpenAI and Magic Hour keys
 npm run dev                  # http://localhost:3000
 ```
 
-Then click **Keys** in the top bar. Each person brings their own API keys for the cheap parts, and the site owner's Magic Hour key covers voice and lip sync, up to a daily cap.
+| Key | Used for | Without it |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | Whisper transcription with word timestamps (about $0.006 per minute) | Placeholder transcript (demo mode) |
+| `MAGIC_HOUR_API_KEY` | Voice cloning and lip sync | Placeholder tone, no lip sync |
+| `ANTHROPIC_API_KEY` (optional) | The Clean up button | Basic um/uh/repeat scan |
 
-| Key | Whose | Used for | Without it |
-| --- | --- | --- | --- |
-| OpenAI | The visitor's, in the Keys panel | Whisper transcription with word timestamps (about $0.006 per minute) | Placeholder transcript |
-| Anthropic | The visitor's, optional | The Clean up button | Basic um/uh/repeat scan |
-| `MAGIC_HOUR_API_KEY` | The site owner's, in `.env.local` | Voice cloning and lip sync | Placeholder tone, no lip sync |
-
-Visitors' keys stay in their browser and go to the server only with the request that needs them. They're never stored there. With no keys at all, the app still runs in demo mode, so you can try the editor first. ffmpeg ships with the app via `ffmpeg-static`, so there's nothing else to install.
+Visitors can also bring their own OpenAI or Anthropic key under **Keys**. It stays in their browser, is sent only with the request that needs it, and takes priority over the server's key. ffmpeg ships with the app via `ffmpeg-static`, so there's nothing else to install.
 
 ## How a render works
 
