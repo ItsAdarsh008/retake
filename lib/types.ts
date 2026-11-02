@@ -34,6 +34,8 @@ export type Project = {
   edits: Edit[];
   demoTranscript?: boolean;
   lastRenderId?: string;
+  /** Hash of the uploading browser's cookie; only that browser can see or edit the project. */
+  owner?: string;
 };
 
 export type ProjectSummary = Pick<
@@ -67,10 +69,17 @@ export type RenderJob = {
   demo: boolean;
 };
 
+/** Lip sync credits a visitor may still spend today. */
+export type Allowance = { left: number; limit: number };
+
 export type Status = {
+  /** The server has its own fallback key, so visitors don't need one. */
   openai: boolean;
-  magicHour: boolean;
   anthropic: boolean;
+  /** The site owner's Magic Hour key, which powers voice and lip sync for everyone. */
+  magicHour: boolean;
+  /** Null when the owner hasn't capped usage. */
+  allowance: Allowance | null;
 };
 
 export type Suggestion = {

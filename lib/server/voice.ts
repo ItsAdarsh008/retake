@@ -2,17 +2,31 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { env } from "./env";
-import { audioDuration, ffmpeg } from "./ffmpeg";
+import { audioDuration, ffmpeg, loudness } from "./ffmpeg";
 import { projectDir } from "./store";
 import * as mh from "./magichour";
 import type { Project } from "../types";
+import { replaceFile } from "./files";
 
-export type Voice = { file: string; duration: number; credits: number; demo: boolean };
+/** `fresh` is true only when this call generated the clip, so its credits were just spent. */
+export type Voice = { file: string; duration: number; credits: number; demo: boolean; fresh: boolean };
 
 export const voiceKey = (text: string) =>
   crypto.createHash("sha1").update(text.trim()).digest("hex").slice(0, 16);
 
 const inflight = new Map<string, Promise<Voice>>();
+
+/** How loud the speaker is in the original footage, measured once per project. */
+const reference = new Map<string, Promise<number | null>>();
+function speakerLoudness(p: Project) {
+  let r = reference.get(p.id);
+  if (!r) {
+    const start = Math.max(0, (p.words[0]?.start ?? 0) - 0.2);
+    r = loudness(path.join(projectDir(p.id), p.sourceFile), start, 45);
+    reference.set(p.id, r);
+  }
+  return r;
+}
 const SAMPLE_TTL = 60 * 60 * 1000;
 
 /** Up to ~45s of the speaker, used as the voice-clone reference. */
@@ -53,7 +67,7 @@ async function doSynthesize(p: Project, text: string): Promise<Voice> {
   try {
     const meta = JSON.parse(await fs.readFile(metaFile, "utf8"));
     await fs.access(out);
-    return { ...meta, file: out };
+    return { ...meta, file: out, fresh: false };
   } catch {}
 
   const demo = !env.magicHourKey;
@@ -81,9 +95,19 @@ async function doSynthesize(p: Project, text: string): Promise<Voice> {
       "-ar", "48000", "-ac", "1", out,
     ]);
     await fs.rm(raw, { force: true });
+
+    // Clones come back several dB quieter than the footage they replace, so the
+    // rewritten line would dip. Match it to the speaker's original level.
+    const [target, got] = await Promise.all([speakerLoudness(p), loudness(out)]);
+    if (target !== null && got !== null && Math.abs(target - got) > 0.5) {
+      const gain = Math.max(-12, Math.min(15, target - got));
+      const tmp = `${out}.level.wav`;
+      await ffmpeg(["-i", out, "-af", `volume=${gain.toFixed(2)}dB,alimiter=limit=0.97:level=false`, "-ar", "48000", "-ac", "1", tmp]);
+      await replaceFile(tmp, out);
+    }
   }
   const duration = await audioDuration(out);
   const meta = { duration, credits, demo };
   await fs.writeFile(metaFile, JSON.stringify(meta));
-  return { ...meta, file: out };
+  return { ...meta, file: out, fresh: true };
 }

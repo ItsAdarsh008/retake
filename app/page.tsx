@@ -2,9 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, uploadVideo } from "@/lib/client";
+import { track } from "@/lib/analytics";
 import { formatTime } from "@/lib/timeline";
 import type { ProjectSummary, Status } from "@/lib/types";
-import { KeyNotice, Wordmark } from "@/components/bits";
+import { Wordmark } from "@/components/bits";
+import { KeysButton, openKeys, useNeedsOpenai } from "@/components/Keys";
 
 const ACCEPT = "video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.m4v,.webm,.mkv";
 
@@ -18,6 +20,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const abortRef = useRef<() => void>(undefined);
+  const needsOpenai = useNeedsOpenai(status);
 
   useEffect(() => {
     api<Status>("/api/status").then(setStatus).catch(() => {});
@@ -37,6 +40,7 @@ export default function Home() {
     abortRef.current = abort;
     try {
       const id = await promise;
+      track("upload");
       router.push(`/p/${id}`);
     } catch (e: any) {
       setProgress(null);
@@ -48,7 +52,7 @@ export default function Home() {
     <main className="home">
       <header className="home-bar">
         <Wordmark />
-        {status && <KeyNotice status={status} />}
+        <KeysButton status={status} />
       </header>
 
       <section className="home-stage">
@@ -85,6 +89,15 @@ export default function Home() {
                 hidden
                 onChange={(e) => start(e.target.files?.[0])}
               />
+              {needsOpenai && (
+                <p className="drop-keys">
+                  Transcripts run on your OpenAI key.{" "}
+                  <button type="button" onClick={openKeys}>
+                    Add it first
+                  </button>{" "}
+                  or try the editor with a placeholder transcript.
+                </p>
+              )}
               {error && <p className="drop-error" role="alert">{error}</p>}
             </>
           ) : (

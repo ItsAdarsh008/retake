@@ -4,6 +4,7 @@ import { fileUrl, plural } from "@/lib/client";
 import { formatTime, type Unit } from "@/lib/timeline";
 import type { LipSyncMode, RenderJob, Scope, Status } from "@/lib/types";
 import { Icon, Spinner } from "./bits";
+import { track } from "@/lib/analytics";
 
 const MODES: { id: LipSyncMode; name: string; note: string }[] = [
   { id: "lite", name: "Lite", note: "Fastest. Fine for simple, steady shots." },
@@ -57,6 +58,9 @@ export function RenderSheet(props: {
   const running = !setup && job!.status === "running";
   const done = !setup && job!.status === "done";
   const demoMH = props.status && !props.status.magicHour;
+  const allowance = props.status?.allowance;
+  const needed = props.credits(props.mode);
+  const over = !!allowance && needed > allowance.left;
 
   return (
     <>
@@ -111,8 +115,14 @@ export function RenderSheet(props: {
 
             {demoMH && props.units.length > 0 && (
               <p className="sheet-warn">
-                No Magic Hour key is set, so rewrites will use a placeholder tone and no lip sync. Add <code>MAGIC_HOUR_API_KEY</code> to{" "}
-                <code>.env.local</code> for the real thing.
+                Magic Hour isn&rsquo;t set up on this server, so rewrites will use a placeholder tone and no lip sync.
+              </p>
+            )}
+            {!demoMH && allowance && props.units.length > 0 && (
+              <p className={over ? "sheet-warn" : "sheet-note"}>
+                {over
+                  ? `This needs about ${needed.toLocaleString()} credits and you have ${allowance.left.toLocaleString()} left today. Re-voice fewer lines or choose “Only the changed words”.`
+                  : `Lip sync is on this site. You have ${allowance.left.toLocaleString()} of your ${allowance.limit.toLocaleString()} daily credits left.`}
               </p>
             )}
             {(props.startError || (job?.status === "error" && props.stage === "job")) && (
@@ -170,6 +180,7 @@ export function RenderSheet(props: {
             <a
               className="btn btn-ink btn-wide"
               href={`${fileUrl(props.projectId, job.output)}?download=${encodeURIComponent(props.projectName + " (retake).mp4")}`}
+              onClick={() => track("download")}
             >
               <Icon name="download" /> Download MP4
             </a>

@@ -1,13 +1,15 @@
 import path from "node:path";
-import { env } from "./env";
 import { ffmpeg, peaks, probe } from "./ffmpeg";
 import { projectDir, readProject, updateProject } from "./store";
 import { demoTranscript, whisper } from "./transcribe";
 
 const BROWSER_SAFE = new Set(["h264", "vp8", "vp9", "av1"]);
 
-/** Probe → playable proxy if needed → transcript → waveform. Runs in the background after upload. */
-export async function processProject(id: string) {
+/**
+ * Probe → playable proxy if needed → transcript → waveform. Runs in the background after upload.
+ * The visitor's OpenAI key lives only in this call's memory; it is never saved with the project.
+ */
+export async function processProject(id: string, openaiKey: string) {
   const stage = (s: string) => updateProject(id, (p) => void (p.stage = s));
   try {
     const p = await readProject(id);
@@ -43,11 +45,11 @@ export async function processProject(id: string) {
     let transcript;
     let demo = false;
     if (!info.hasAudio) throw new Error("That video has no audio track, so there's nothing to transcribe.");
-    if (env.openaiKey) {
+    if (openaiKey) {
       await stage("Transcribing");
       const audio = path.join(dir, "audio.mp3");
       await ffmpeg(["-i", src, "-vn", "-ac", "1", "-ar", "16000", "-b:a", "40k", audio]);
-      transcript = await whisper(audio);
+      transcript = await whisper(audio, openaiKey);
       if (!transcript.words.length) throw new Error("Whisper didn't hear any speech in that video.");
     } else {
       demo = true;

@@ -204,16 +204,86 @@ code {
   font-size: 0.7em;
 }
 
-.key-notice {
+.btn-keys {
+  background: transparent;
+  color: var(--on-slate-dim);
+  border-color: var(--slate-line);
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.btn-keys:hover {
+  color: var(--on-slate);
+  background: var(--slate-2);
+}
+.btn-keys.is-needed {
+  color: #f2c57c;
+  border-color: rgba(242, 197, 124, 0.45);
+}
+.btn-keys.is-needed:hover {
+  background: rgba(242, 197, 124, 0.08);
+}
+
+.key-field {
+  display: grid;
+  gap: 6px;
+}
+.key-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.key-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+.key-tag {
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+.key-field input {
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  width: 100%;
+}
+.key-field input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue);
+}
+.key-field.is-bad input {
+  border-color: var(--red);
+  box-shadow: 0 0 0 1px var(--red);
+}
+.key-note,
+.key-error {
   margin: 0;
   font-size: 13px;
-  color: #f2c57c;
+  color: var(--ink-dim);
 }
-.key-notice.is-compact {
-  padding: 4px 10px;
-  border: 1px solid rgba(242, 197, 124, 0.35);
-  border-radius: 999px;
-  cursor: help;
+.key-note a {
+  color: var(--blue);
+}
+.key-error {
+  color: #8e1d2b;
+}
+.key-covered {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px dashed var(--rule);
+  border-radius: 10px;
+}
+.key-covered p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-dim);
 }
 
 kbd {
@@ -319,6 +389,22 @@ kbd {
 .drop-error {
   margin-top: 14px !important;
   color: #ff9aa6 !important;
+}
+.drop .drop-keys {
+  margin: 18px 0 0;
+  max-width: 340px;
+  font-size: 13px;
+  color: var(--on-slate-dim);
+}
+.drop .drop-keys button {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #f2c57c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 .upload-progress {
   width: min(360px, 100%);

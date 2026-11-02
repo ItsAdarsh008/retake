@@ -1,5 +1,4 @@
 "use client";
-import type { Status } from "@/lib/types";
 
 export function Wordmark({ href = "/" }: { href?: string }) {
   return (
@@ -9,30 +8,11 @@ export function Wordmark({ href = "/" }: { href?: string }) {
   );
 }
 
-export function KeyNotice({ status, compact }: { status: Status; compact?: boolean }) {
-  const names: string[] = [];
-  const effects: string[] = [];
-  if (!status.openai) {
-    names.push("OpenAI");
-    effects.push("Transcripts are placeholders until an OpenAI key is set.");
-  }
-  if (!status.magicHour) {
-    names.push("Magic Hour");
-    effects.push("Rewrites use a placeholder tone and skip lip sync until a Magic Hour key is set.");
-  }
-  if (!names.length) return null;
-  return (
-    <p className={`key-notice ${compact ? "is-compact" : ""}`} title={effects.join("\n")}>
-      Demo mode{compact ? "" : <>: add your {names.join(" and ")} key{names.length > 1 ? "s" : ""} to <code>.env.local</code></>}
-    </p>
-  );
-}
-
 export const Spinner = ({ size = 14 }: { size?: number }) => (
   <span className="spinner" style={{ width: size, height: size }} aria-hidden />
 );
 
-type IconName = "play" | "pause" | "undo" | "redo" | "scissors" | "pen" | "restore" | "spark" | "download" | "close" | "check" | "alert" | "back";
+type IconName = "play" | "pause" | "undo" | "redo" | "scissors" | "pen" | "restore" | "spark" | "download" | "close" | "check" | "alert" | "back" | "key";
 
 const PATHS: Record<IconName, string> = {
   play: "M7 4.5v15l12-7.5z",
@@ -48,6 +28,7 @@ const PATHS: Record<IconName, string> = {
   check: "M5 12.5l4.5 4.5L19 7.5",
   alert: "M12 8v5M12 16.5v.01M12 3.5 21 19.5H3z",
   back: "M14.5 6 8.5 12l6 6",
+  key: "M14.5 9.5a4 4 0 1 0-3.6 3.98L9 15.5H7v2H5v2H3.5v-2.6l6.1-6.1M15.5 7.5v.01",
 };
 
 export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {

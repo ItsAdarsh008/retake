@@ -24,8 +24,8 @@ Find spans that a careful editor would cut so the speech reads cleanly WITHOUT c
 Never cut content words that carry meaning. Be conservative: when unsure, leave it.
 Reply with ONLY JSON: {"cuts":[{"from":<first index>,"to":<last index>,"reason":"filler"|"repeat"|"false start"}]}`;
 
-export async function claudeCleanup(words: Word[], skip: Edit[]): Promise<Suggestion[]> {
-  if (!env.anthropicKey) return heuristicCleanup(words);
+export async function claudeCleanup(words: Word[], skip: Edit[], apiKey: string): Promise<Suggestion[]> {
+  if (!apiKey) return heuristicCleanup(words);
   const taken = new Set<number>();
   for (const e of skip) for (let i = e.from; i <= e.to; i++) taken.add(i);
 
@@ -36,7 +36,7 @@ export async function claudeCleanup(words: Word[], skip: Edit[]): Promise<Sugges
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "x-api-key": env.anthropicKey,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
@@ -53,6 +53,7 @@ export async function claudeCleanup(words: Word[], skip: Edit[]): Promise<Sugges
       try {
         msg = JSON.parse(t).error?.message ?? t;
       } catch {}
+      if (res.status === 401) msg = "Anthropic rejected the API key. Check it under Keys.";
       throw new Error(`Claude couldn't review the transcript: ${msg}`);
     }
     const data = await res.json();

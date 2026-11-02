@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { env } from "./env";
 import type { Project, ProjectSummary, RenderJob } from "../types";
+import { replaceFile } from "./files";
 
 export const newId = () => crypto.randomBytes(6).toString("base64url").replace(/[-_]/g, "x");
 
@@ -17,7 +18,7 @@ export const projectDir = (id: string) => path.join(env.dataDir, "projects", ass
 async function writeJson(file: string, data: unknown) {
   const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(data));
-  await fs.rename(tmp, file);
+  await replaceFile(tmp, file);
 }
 
 export async function readProject(id: string): Promise<Project | null> {
@@ -48,7 +49,8 @@ export async function createProject(p: Project) {
   await writeJson(path.join(projectDir(p.id), "project.json"), p);
 }
 
-export async function listProjects(): Promise<ProjectSummary[]> {
+/** Projects uploaded from this browser. Ownerless (older) projects stay reachable by link but aren't listed. */
+export async function listProjects(owner: string): Promise<ProjectSummary[]> {
   const dir = path.join(env.dataDir, "projects");
   let ids: string[] = [];
   try {
@@ -60,7 +62,7 @@ export async function listProjects(): Promise<ProjectSummary[]> {
   for (const id of ids) {
     if (!SAFE_ID.test(id)) continue;
     const p = await readProject(id);
-    if (p)
+    if (p && owner && p.owner === owner)
       out.push({
         id: p.id,
         name: p.name,

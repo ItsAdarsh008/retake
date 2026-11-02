@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { projectDir } from "@/lib/server/store";
+import { ownedProject } from "@/lib/server/request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ const TYPES: Record<string, string> = {
 export async function GET(req: Request, { params }: { params: Promise<{ id: string; path: string[] }> }) {
   const { id, path: parts } = await params;
   const rel = parts.join("/");
-  if (!ALLOWED.test(rel)) return new Response("Not found", { status: 404 });
+  if (!ALLOWED.test(rel) || !(await ownedProject(req, id))) return new Response("Not found", { status: 404 });
   let file: string;
   let size: number;
   try {

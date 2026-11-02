@@ -16,10 +16,13 @@ import {
   type Unit,
 } from "@/lib/timeline";
 import type { Edit, LipSyncMode, RenderJob, Scope, Status, Suggestion } from "@/lib/types";
-import { Icon, KeyNotice, Spinner, Wordmark, isMac } from "./bits";
+import { Icon, Spinner, Wordmark, isMac } from "./bits";
+import { KeysButton } from "./Keys";
+import { anthropicHeaders } from "@/lib/keys";
 import { Player, type PlayerHandle } from "./Player";
 import { SelectionLayer, Transcript, type Range, type TranscriptHandle, type VoiceState } from "./Transcript";
 import { RenderSheet } from "./RenderSheet";
+import { track } from "@/lib/analytics";
 
 type Rewrite = { from: number; to: number; draft: string };
 
@@ -96,7 +99,9 @@ export default function Editor({ id }: { id: string }) {
     if (job?.status !== "running") return;
     const t = setInterval(async () => {
       try {
-        setJob(await api<RenderJob>(`/api/projects/${id}/render?job=${job.id}`));
+        const next = await api<RenderJob>(`/api/projects/${id}/render?job=${job.id}`);
+        if (next.status === "done") track("render-done", { mode: next.mode });
+        setJob(next);
       } catch {}
     }, 1500);
     return () => clearInterval(t);
@@ -232,7 +237,7 @@ export default function Editor({ id }: { id: string }) {
   const runCleanup = async () => {
     setCleanup({ state: "loading" });
     try {
-      const r = await post<{ suggestions: Suggestion[]; source: string }>(`/api/projects/${id}/cleanup`, { edits });
+      const r = await post<{ suggestions: Suggestion[]; source: string }>(`/api/projects/${id}/cleanup`, { edits }, anthropicHeaders());
       setSuggestions(r.suggestions);
       setCleanup({ state: "done", source: r.source });
     } catch (e: any) {
@@ -249,6 +254,7 @@ export default function Editor({ id }: { id: string }) {
 
   const openSheet = () => {
     setStartError("");
+    api<Status>("/api/status").then(setStatus).catch(() => {});
     setSheetStage(job && (job.status === "running" || !dirty) ? "job" : "setup");
     setSheet(true);
   };
@@ -258,6 +264,7 @@ export default function Editor({ id }: { id: string }) {
     try {
       const j = await post<RenderJob>(`/api/projects/${id}/render`, { edits, mode, scope });
       renderedKey.current = JSON.stringify(edits);
+      track("render", { mode });
       setJob(j);
       setSheetStage("job");
     } catch (e: any) {
@@ -387,7 +394,7 @@ export default function Editor({ id }: { id: string }) {
         />
         <span className={`save-state is-${saved}`}>{saved === "saving" ? "Saving" : saved === "error" ? "Not saved" : edits.length ? "Saved" : ""}</span>
         <div className="topbar-spacer" />
-        {status && <KeyNotice status={status} compact />}
+        <KeysButton status={status} compact />
         <div className="history">
           <button className="icon-btn" onClick={undo} disabled={!past.current.length} title={`Undo (${mod}Z)`} aria-label="Undo">
             <Icon name="undo" />
@@ -489,7 +496,7 @@ export default function Editor({ id }: { id: string }) {
           </div>
         )}
         {project.demoTranscript && (
-          <p className="demo-note">This is a placeholder transcript. Add an OpenAI key and upload again to transcribe the real speech.</p>
+          <p className="demo-note">This is a placeholder transcript. Add your OpenAI key under Keys, then upload again to transcribe the real speech.</p>
         )}
         <Transcript
           ref={transcript}

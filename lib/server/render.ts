@@ -1,9 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { env } from "./env";
-import { ffmpeg, probe } from "./ffmpeg";
+import { ffmpeg, probe, sceneCuts } from "./ffmpeg";
 import { newId, projectDir, saveJob, updateProject } from "./store";
 import { synthesize } from "./voice";
+import { record, reserve } from "./budget";
 import * as mh from "./magichour";
 import { buildPieces, estimateCredits, buildUnits, lipSyncFps, type Unit } from "../timeline";
 import type { LipSyncMode, Project, RenderJob, RenderStep, Scope } from "../types";
@@ -14,7 +15,8 @@ export const liveJob = (id: string) => live.get(id);
 const even = (n: number) => Math.max(2, n - (n % 2));
 const clip = (s: string, n = 48) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
-export async function startRender(p: Project, mode: LipSyncMode, scope: Scope): Promise<RenderJob> {
+/** Starts a render billed to `visitor`. Throws BudgetError if their lip sync allowance can't cover it. */
+export async function startRender(p: Project, mode: LipSyncMode, scope: Scope, visitor: string): Promise<RenderJob> {
   const pieces = buildPieces(p.words, p.edits, p.duration, scope);
   const units = pieces.flatMap((x) => (x.kind === "unit" ? [x.unit] : []));
   const keeps = pieces.filter((x) => x.kind === "keep").length;
@@ -35,9 +37,14 @@ export async function startRender(p: Project, mode: LipSyncMode, scope: Scope): 
     creditsCharged: 0,
     demo: !env.magicHourKey,
   };
+  // Hold the estimate up front; run() settles it to what Magic Hour actually charged.
+  const held = job.demo ? 0 : job.creditsEstimate;
+  if (held) await reserve(visitor, held);
   live.set(job.id, job);
   await saveJob(job);
-  run(p, job, pieces).catch(() => {});
+  run(p, job, pieces)
+    .catch(() => {})
+    .finally(() => record(visitor, job.creditsCharged - held).catch(() => {}));
   return job;
 }
 
@@ -105,7 +112,9 @@ async function run(p: Project, job: RenderJob, pieces: ReturnType<typeof buildPi
     // 3. Join.
     step("stitch", { status: "active" });
     const list = path.join(work, "list.txt");
-    await fs.writeFile(list, segs.map((s) => `file '${s.replace(/'/g, "'\\''")}'`).join("\n"));
+    // ffmpeg reads relative entries against the list's own folder, so write absolute
+    // paths (a relative RETAKE_DATA_DIR like ./.data would otherwise be doubled).
+    await fs.writeFile(list, segs.map((s) => `file '${path.resolve(s).replace(/'/g, "'\\''")}'`).join("\n"));
     const final = path.join(dir, "renders", `${job.id}.mp4`);
     await ffmpeg([
       "-f", "concat", "-safe", "0", "-i", list, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
@@ -146,7 +155,7 @@ async function renderUnit(
   step(key, { status: "active", detail: job.demo ? "Placeholder voice (demo mode)" : "Cloning the voice" });
   try {
     const voice = await synthesize(p, u.text);
-    job.creditsCharged += voice.credits;
+    if (voice.fresh) job.creditsCharged += voice.credits;
 
     // Rebuild the pauses around the line, then the new speech in between.
     const lead = Math.max(0.02, u.speechStart - u.start);
@@ -162,16 +171,21 @@ async function renderUnit(
 
     // Driver footage: the original take. If the new line runs longer, extend it
     // by playing the take forward then backward (ping-pong) so there are no freezes.
+    // A take that ends in a cut or transition would ping-pong back through it, so it
+    // ends just before any cut in its final second.
     const orig = u.end - u.start;
+    const tailCut = (await sceneCuts(src, u.start, orig)).filter((c) => c > 0.6 && c > orig - 1).sort((a, b) => a - b)[0];
+    const take = tailCut === undefined ? orig : tailCut - 0.12;
     const driver = `${base}.driver.mp4`;
-    const scale = "scale=-2:'min(ih,1080)',fps=" + fps;
+    // Cap the short side at 1080 so portrait clips aren't shrunk to 608x1080.
+    const scale = "scale='if(gte(iw,ih),-2,min(iw,1080))':'if(gte(iw,ih),min(ih,1080),-2)',fps=" + fps;
     const enc = ["-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"];
-    if (len <= orig + 0.02) {
+    if (len <= take + 0.02) {
       await ffmpeg(["-ss", u.start.toFixed(3), "-t", len.toFixed(3), "-i", src, "-vf", scale, ...enc, driver]);
     } else {
       const fwd = `${base}.fwd.mp4`;
       const pp = `${base}.pp.mp4`;
-      await ffmpeg(["-ss", u.start.toFixed(3), "-t", orig.toFixed(3), "-i", src, "-vf", scale, ...enc, fwd]);
+      await ffmpeg(["-ss", u.start.toFixed(3), "-t", take.toFixed(3), "-i", src, "-vf", scale, ...enc, fwd]);
       await ffmpeg([
         "-i", fwd, "-filter_complex", "[0:v]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1:a=0[v]",
         "-map", "[v]", ...enc, pp,

@@ -8,7 +8,7 @@ type WhisperSegment = { start: number; end: number; text: string };
 
 const OPENAI_LIMIT = 25 * 1024 * 1024;
 
-export async function whisper(audioFile: string): Promise<{ words: Word[]; paragraphs: Paragraph[] }> {
+export async function whisper(audioFile: string, apiKey: string): Promise<{ words: Word[]; paragraphs: Paragraph[] }> {
   const buf = await fs.readFile(audioFile);
   if (buf.byteLength > OPENAI_LIMIT) {
     throw new Error("This video's audio is over OpenAI's 25 MB limit (roughly 70+ minutes). Trim it and try again.");
@@ -22,7 +22,7 @@ export async function whisper(audioFile: string): Promise<{ words: Word[]; parag
 
   const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${env.openaiKey}` },
+    headers: { Authorization: `Bearer ${apiKey}` },
     body: form,
   });
   if (!res.ok) {
@@ -31,7 +31,7 @@ export async function whisper(audioFile: string): Promise<{ words: Word[]; parag
     try {
       msg = JSON.parse(body).error?.message ?? body;
     } catch {}
-    if (res.status === 401) msg = "OpenAI rejected the API key. Check OPENAI_API_KEY in .env.local.";
+    if (res.status === 401) msg = "OpenAI rejected the API key. Check it under Keys and upload again.";
     if (res.status === 429) msg = "OpenAI says the account is out of credit or rate-limited. Check billing at platform.openai.com.";
     throw new Error(`Transcription failed: ${msg}`);
   }
@@ -97,11 +97,11 @@ export function paragraphsFor(words: Word[]): Paragraph[] {
 }
 
 const DEMO_LINES = [
-  "This is a demo transcript, because no OpenAI key is set yet.",
+  "This is a placeholder transcript, because no OpenAI key was added.",
   "Every word here is timed against your video, so clicking one jumps playback to it.",
   "Try selecting a few words and pressing delete to cut them out.",
   "Or select a phrase, start typing, and rewrite what was said.",
-  "Add your keys to the env file to get a real transcript and real lip sync.",
+  "Add your OpenAI key under Keys, then upload again for a real transcript.",
 ];
 
 /** Evenly timed placeholder words so the editor is usable without an OpenAI key. */

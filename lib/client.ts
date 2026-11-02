@@ -1,5 +1,6 @@
 "use client";
 import type { Project, RenderJob } from "./types";
+import { openaiHeaders } from "./keys";
 
 export type ProjectView = Project & { lastRender: RenderJob | null };
 
@@ -10,8 +11,8 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return json as T;
 }
 
-export const post = <T,>(url: string, body: unknown) =>
-  api<T>(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+export const post = <T,>(url: string, body: unknown, headers: Record<string, string> = {}) =>
+  api<T>(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
 
 export const fileUrl = (id: string, rel: string) => `/api/projects/${id}/file/${rel}`;
 
@@ -19,8 +20,9 @@ export const fileUrl = (id: string, rel: string) => `/api/projects/${id}/file/${
 export function uploadVideo(file: File, onProgress: (f: number) => void): { promise: Promise<string>; abort: () => void } {
   const xhr = new XMLHttpRequest();
   const promise = new Promise<string>((resolve, reject) => {
-    xhr.open("POST", "/api/projects");
+    xhr.open("POST", "/api/upload");
     xhr.setRequestHeader("x-filename", encodeURIComponent(file.name));
+    for (const [k, v] of Object.entries(openaiHeaders())) xhr.setRequestHeader(k, v);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     xhr.onload = () => {
       try {

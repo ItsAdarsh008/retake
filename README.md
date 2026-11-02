@@ -1,49 +1,104 @@
 # Retake
 
-Edit a video by editing its transcript.
+**Edit the words. The video follows.**
 
-- **Cut**: select words and press Delete. The clip is cut there.
-- **Rewrite**: select words and start typing. The line is spoken again in the speaker's cloned voice, and Magic Hour re-syncs their lips to it.
-- **Clean up**: Claude marks fillers, stutters and false starts; cut them all in one click.
+Retake fixes a video by editing its transcript, like a doc. Delete words and they're cut from the video. Type new words and the speaker says them in their own voice, with their lips re-synced to match. No reshoot.
 
-Playback previews your edits live: cut material is skipped and rewritten lines play in the cloned voice, before you spend anything on lip sync.
+**Watch the demo** in the [demo folder](https://drive.google.com/drive/folders/1oRdGkvuHgx4K9GDVt6YJ8utbkKUT9SXM):
 
-## Run it
+- **Retake reel (45s)**: vertical, for Instagram Reels, TikTok and YouTube Shorts.
+- **Retake demo - LinkedIn and X (45s)**: horizontal, with an on-screen explanation of each step.
+- **Retake demo (15s)**: horizontal, a quicker cut for X.
 
-Needs Node 20+.
+In the demo, the speaker says "we're gonna film a few people". The fix "three" is typed into the transcript, and the rendered clip says "three" in the same voice, lips matching.
 
-```bash
-npm install
-cp .env.example .env.local   # add your keys
-npm run dev                  # http://localhost:3000
-```
+## What it does
 
-| Key | Used for | Without it |
+| Feature | How you use it | What happens |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | Whisper transcription with word timestamps (about $0.006 per minute) | Placeholder transcript |
-| `MAGIC_HOUR_API_KEY` | Voice cloning and lip sync | Placeholder tone, no lip sync |
-| `ANTHROPIC_API_KEY` | The Clean up button | Basic um/uh/repeat scan |
+| **Cut** | Select words, press Delete | That part of the video is removed, cut in the natural pause between words |
+| **Rewrite** | Select words, start typing | The sentence is spoken again in the speaker's cloned voice, and their lips are re-synced to the new words |
+| **Clean up** | One button | Finds the ums, stutters and false starts so you can cut them all in one click |
+| **Preview** | Press play | Plays the video with your edits, new lines in the cloned voice, before you render anything |
 
-With no keys at all the whole app still runs in demo mode, so you can try the editor first. ffmpeg ships with the app via `ffmpeg-static`, so there's nothing else to install.
+## Who it's for
 
-## How a render works
+- **Creators who misspoke on camera:** a wrong number, name, date or price.
+- **Anyone tidying a take:** a swear, a stumble, a long pause, filler words.
+- **Brands with evergreen videos:** a price or date changes and one line is out of date, but the rest of the video is fine.
+- **Founders making product videos:** record once, fix the script afterwards.
 
-1. Each rewrite becomes a **unit**. By default it widens to the whole sentence, so the cloned voice speaks naturally instead of a lone synthetic word spliced into real speech. You can switch to "only the changed words" in the render panel.
-2. The unit's text goes to Magic Hour's **AI Voice Cloner**, using up to 45 seconds of the original speaker as the reference. The result is cached, and the same clip is what you hear in the editor's preview.
-3. The original footage for that unit becomes the lip sync driver. If the new line runs longer than the original, the footage is extended by playing it forward then backward, so there's no frozen frame.
-4. Magic Hour **Lip Sync** re-animates the mouth on just that clip (`start_seconds`/`end_seconds`), billed per frame at up to 30 fps.
-5. Kept sections and synced units are encoded to identical settings and joined, with 12 ms audio fades at every seam to avoid clicks.
+## How it works for the person using it
 
-Cuts happen at the midpoint of the pause between words, so jump cuts keep natural breathing room.
+1. **Upload a video** (MP4, MOV, WebM or MKV, up to 500 MB). The transcript appears with every word timed. A three-minute video took about 15 seconds.
+2. **Edit the text.** Cut, rewrite or clean up.
+3. **Preview** with play.
+4. **Render and download.** A rewrite takes a few minutes because the lips are re-synced; the one in the demo took about 5.
 
-Credits: Lite and Standard cost 1 credit per frame, Pro costs 2. A 4-second rewritten sentence at 30 fps is about 120 credits on Standard. The render panel shows the estimate before you commit.
+No sign-up, no account, no payment. Each browser only sees the videos it uploaded.
 
-## Deploying
+## What it costs, and who pays
 
-See [DEPLOY.md](DEPLOY.md) for step-by-step hosting on Railway, pricing and payments. In short: it needs a long-running Node server with a persistent disk (not Vercel), and you should set `SITE_PASSWORD` so strangers can't spend your API credits.
+| | Who pays | Cost |
+| --- | --- | --- |
+| Transcripts (OpenAI) | The user, with their own OpenAI API key | About $0.006 per minute of video, so a 3-minute video costs about 2 cents |
+| Clean up (Anthropic) | The user, optional | A fraction of a cent. Without a key, Clean up falls back to a basic um/uh scan |
+| Voice and lip sync (Magic Hour) | Us | About $0.13 per rewritten sentence |
 
-## Layout
+Lip sync is free for users up to about 3 rewritten sentences per person per day. Our total spend is capped at about $3 a day (about $90 a month at most). Both limits can be changed; see [SETUP.md](SETUP.md).
 
-- `lib/timeline.ts`: the edit model shared by browser and server (cuts, rewrites, units, playback skips, credit estimates)
-- `lib/server/`: ingest (probe, Whisper, waveform), voice cloning, render pipeline, Magic Hour client, Claude cleanup
-- `components/`: `Editor` (state, shortcuts), `Transcript` (marked-up page, selection, rewrite box), `Player` (edit-aware playback, timeline), `RenderSheet`
+Users' API keys stay in their own browser and are never stored on our server. Without an OpenAI key, the app runs in demo mode with placeholder text, which is fine for trying the editor but not for real footage.
+
+## What to promise, and what not to
+
+**Safe to say:**
+
+- "Fix what you said without a reshoot."
+- "In your own voice, lips synced."
+- "Edit video like a doc."
+
+**Avoid:**
+
+- **"Instant."** Cuts are quick, but a rewrite takes a few minutes to render.
+- **"Works on any video."** It works best on talking-head clips: one speaker, face visible and facing the camera, clear audio.
+- **"Changes the captions too."** Captions burned into the picture (the TikTok style) keep the old words. Captions added on the platform are fine.
+- **"Free."** Users need their own OpenAI key. Transcripts cost cents, and lip sync is on us up to the daily limit.
+
+**Consent:** Retake clones voices and changes what people appear to say. Only show or encourage it on footage of yourself, or of people who agreed. Every campaign and creator brief should say so.
+
+## Brand basics
+
+- **Name:** Retake. **Tagline:** "Edit the words. The video follows."
+- **Wordmark:** "Retake" in Newsreader, with "Re" in italic blue and a proofreader's caret (‸) under it.
+- **Look:** an editing desk. The video sits on a dark desk and the transcript is a sheet of paper, marked up in red for cuts and blue for rewrites.
+- **Colours:**
+  - Slate `#1D2026` (background)
+  - Paper `#F4F6F8`
+  - Blue `#2A54D6` (rewrites)
+  - Light blue `#8EABFF`
+  - Red `#CF3346` (cuts)
+- **Fonts:** all free on Google Fonts.
+  - Newsreader for headlines and transcripts
+  - Schibsted Grotesk for interface text
+  - JetBrains Mono for small labels
+
+## Measuring results
+
+Retake can report the whole path for each creator: views (on the platform), then visits, uploads, renders and downloads (in [Umami](https://umami.is), a free, cookieless analytics tool).
+
+- **Give every creator their own link,** like `https://<our site>/?utm_source=jane&utm_medium=social&utm_campaign=launch`.
+- **In Umami, filter by UTM source** to see that creator's visits, uploads, renders and downloads.
+- **There are no accounts,** so there are no signups. The closest thing is a first upload.
+- **Transcript usage isn't visible.** That runs on users' own OpenAI keys.
+
+Setting this up takes about 10 minutes; see [SETUP.md](SETUP.md), section 6.
+
+## Sharing with creators
+
+For a creator preview, the site can be password-protected, with transcripts on our key. Creators then need only the link and the password: no API keys, no sign-up. See [SETUP.md](SETUP.md), section 5.
+
+## More
+
+- [SETUP.md](SETUP.md): putting it online (Railway, about 30 minutes; it can't run on Vercel), daily limits and running costs.
+- [DEVELOPING.md](DEVELOPING.md): running it locally, how a render works, where the code lives.
+- [demo/README.md](demo/README.md): how the demo video is made and how to remake it with new footage.

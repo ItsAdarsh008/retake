@@ -39,6 +39,35 @@ export function run(bin: string, args: string[]): Promise<Buffer> {
 
 export const ffmpeg = (args: string[]) => run(FFMPEG, ["-hide_banner", "-loglevel", "error", "-y", ...args]);
 
+/** Integrated loudness in LUFS of a file's audio (optionally a window of it), or null if silent or unreadable. */
+export async function loudness(file: string, start = 0, dur?: number): Promise<number | null> {
+  try {
+    const out = await run(FFMPEG, [
+      "-hide_banner", "-loglevel", "error", "-ss", start.toFixed(3), ...(dur ? ["-t", dur.toFixed(3)] : []), "-i", file, "-vn",
+      "-af", "ebur128=metadata=1,ametadata=print:key=lavfi.r128.I:file=-", "-f", "null", "-",
+    ]);
+    const all = [...out.toString().matchAll(/lavfi\.r128\.I=(-?[\d.]+)/g)];
+    const v = all.length ? Number(all[all.length - 1][1]) : NaN;
+    return Number.isFinite(v) && v > -70 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Seconds (from `start`) where the picture changes abruptly: a hard cut, or a whip or flash transition. */
+export async function sceneCuts(file: string, start: number, dur: number, threshold = 10): Promise<number[]> {
+  try {
+    const out = await run(FFMPEG, [
+      "-hide_banner", "-loglevel", "error", "-ss", start.toFixed(3), "-t", dur.toFixed(3), "-i", file, "-an",
+      "-vf", `scdet=threshold=${threshold},metadata=select:key=lavfi.scd.time,metadata=print:file=-`,
+      "-f", "null", "-",
+    ]);
+    return [...out.toString().matchAll(/lavfi\.scd\.time=([\d.]+)/g)].map((m) => Number(m[1]));
+  } catch {
+    return [];
+  }
+}
+
 export type Probe = {
   duration: number;
   width: number;
