@@ -1,0 +1,12 @@
+{
+  "viewport": { "width": 432, "height": 768, "scale": 2.5 },
+  "redact": ["shit"],
+  "cut": ["Perfect, thank you.", "Oh, shit, oh."],
+  "rewrites": [
+    { "find": "Hacks for", "to": "Hack the" },
+    { "find": "a few", "to": "three" }
+  ],
+  "cleanup": false,
+  "mode": "standard",
+  "previewSeconds": 7
+}

@@ -1,0 +1,14 @@
+node_modules
+dist
+.DS_Store
+.env
+
+# Ignore the output video from Git but not videos you import into src/.
+out
+
+# Footage, renders and screen captures are personal media; keep them out of Git.
+public/*
+!public/.gitkeep
+capture
+# Timings and transcript from the capture, made by scripts/prepare.mjs.
+src/data.json
